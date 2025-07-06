@@ -1,5 +1,7 @@
-# weatherviz
+# WeatherViz
 
-This repository contains a simple frontend example that displays a SwissTopo base map centered over Switzerland. The map uses the grey basemap so that weather layers can be added later without visual distraction.
+This is a private, experimental project aimed at visualizing MeteoSwiss open weather model data. The viewer uses Leaflet to display these data on top of SwissTopo maps by default, while allowing alternative background layers to be selected.
+
+The code is written in Python and includes a server-side component to convert data into a web-friendly format for the map interface.
 
 Open `index.html` in a web browser to see the map.
