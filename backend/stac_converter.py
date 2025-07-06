@@ -32,16 +32,37 @@ def fetch_variable(
 
 
 def array_to_png(data: np.ndarray, output_path: Path) -> None:
-    """Save a 2D NumPy array as an 8-bit grayscale PNG."""
-
+    """Save a 2D NumPy array as an 8-bit grayscale PNG with transparency for NaN values."""
     logger.info("Saving PNG to %s", output_path)
-    data_min = np.nanmin(data)
-    data_max = np.nanmax(data)
+
+    # Create an alpha channel where NaN values are transparent
+    alpha_channel = np.where(np.isnan(data), 0, 255).astype(np.uint8)
+
+    # Replace NaN values with the minimum value in the array for scaling
+    if np.isnan(data).any():
+        logger.warning("Array contains NaN values. Replacing NaNs with the minimum value for scaling.")
+        data = np.nan_to_num(data, nan=np.nanmin(data))
+
+    # Compute the minimum and maximum values
+    data_min = np.min(data)
+    data_max = np.max(data)
+
+    # Handle the case where all values are the same
     if data_max == data_min:
-        scaled = np.zeros_like(data, dtype=np.uint8)
+        logger.warning("Array has constant values. Generating a blank image.")
+        grayscale = np.zeros_like(data, dtype=np.uint8)
     else:
-        scaled = 255 * (data - data_min) / (data_max - data_min)
-    img = Image.fromarray(scaled.astype(np.uint8))
+        # Scale the data to the range [0, 255]
+        grayscale = 255 * (data - data_min) / (data_max - data_min)
+
+    # Ensure the data type is uint8
+    grayscale = grayscale.astype(np.uint8)
+
+    # Combine the grayscale data with the alpha channel to create an RGBA image
+    rgba_image = np.dstack((grayscale, grayscale, grayscale, alpha_channel))
+
+    # Save the array as a PNG
+    img = Image.fromarray(rgba_image)
     img.save(output_path)
 
 
@@ -67,9 +88,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "collection",
-        help="STAC collection ID, e.g. ch.meteoschweiz.ogd-forecasting-icon-ch2",
+        help="STAC collection ID, e.g. ogd-forecasting-icon-ch2",
     )
-    parser.add_argument("variable", help="Variable short name, e.g. T or U_10M")
+    parser.add_argument("variable", help="Variable short name, e.g. T_2M or U_10M")
     parser.add_argument(
         "--ref-time",
         default="latest",
