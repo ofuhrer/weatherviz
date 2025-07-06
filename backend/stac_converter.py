@@ -7,6 +7,8 @@ from typing import Any
 import numpy as np
 from PIL import Image
 from meteodatalab import ogd_api
+from meteodatalab.operators import regrid
+from meteodatalab.operators.regrid import RegularGrid
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -72,12 +74,20 @@ def variable_to_png(
     ref_time: str,
     horizon: str,
     perturbed: bool,
+    regrid_target: str | None,
     output_path: str,
 ) -> None:
     """Download a forecast field and save it as a PNG image."""
 
     da = fetch_variable(collection, variable, ref_time, horizon, perturbed)
-    array_to_png(da.values.squeeze(), Path(output_path))
+
+    if regrid_target:
+        grid = RegularGrid.parse_regrid_operator(regrid_target)
+        da = regrid.iconremap(da.squeeze(), grid)
+    else:
+        da = da.squeeze()
+
+    array_to_png(da.values, Path(output_path))
 
 
 if __name__ == "__main__":
@@ -106,6 +116,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Retrieve ensemble member instead of deterministic field",
     )
+    parser.add_argument(
+        "--regrid",
+        metavar="SPEC",
+        help=(
+            "Regrid to target grid defined as 'crs,xmin,ymin,xmax,ymax,dx,dy'"
+        ),
+    )
     parser.add_argument("output", help="Output PNG path")
     args = parser.parse_args()
 
@@ -115,5 +132,6 @@ if __name__ == "__main__":
         args.ref_time,
         args.horizon,
         args.perturbed,
+        args.regrid,
         args.output,
     )
