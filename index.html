@@ -3,32 +3,121 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Swiss Weather Map</title>
+    <title>WeatherViz</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="anonymous" />
     <style>
         body, html { margin: 0; padding: 0; height: 100%; }
-        #map { width: 100%; height: 100%; }
+        #map { width: 100%; height: 100%; position: relative; }
+        #menu-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        #menu-icon {
+            background: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+        }
+        #menu {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            padding: 10px;
+        }
+        #menu label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        #menu select {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
     <div id="map" role="application" aria-label="Swiss Weather Map">
+        <div id="menu-container">
+            <div id="menu-icon">☰</div>
+            <div id="menu">
+                <label for="basemap">Basemap:</label>
+                <select id="basemap">
+                    <option value="ch.swisstopo.pixelkarte-grau">Gray Map (SwissTopo)</option>
+                    <option value="ch.swisstopo.pixelkarte-farbe">Color Map (SwissTopo)</option>
+                    <option value="osm">OpenStreetMap</option>
+                    <option value="google-roadmap">Google Maps (Roadmap)</option>
+                    <option value="google-satellite">Google Maps (Satellite)</option>
+                </select>
+            </div>
+        </div>
         <p>Your browser does not support interactive maps. Please update your browser.</p>
     </div>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/gh/IvanSanchez/Leaflet.GridLayer.GoogleMutant/Leaflet.GoogleMutant.js"></script>
     <script>
         const map = L.map('map').setView([46.8182, 8.2275], 8);
 
-        const tileLayer = L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-grau/default/current/3857/{z}/{x}/{y}.jpeg', {
-            attribution: 'Map data &copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a> | <a href="https://leafletjs.com/">Leaflet</a>',
-            maxZoom: 18,
-            minZoom: 5
+        // Function to create a tile layer
+        function createTileLayer(layerName) {
+            if (layerName === 'osm') {
+                // OpenStreetMap tiles
+                return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19
+                });
+            } else if (layerName === 'google-roadmap') {
+                // Google Maps Roadmap tiles
+                return L.gridLayer.googleMutant({
+                    type: 'roadmap'
+                });
+            } else if (layerName === 'google-satellite') {
+                // Google Maps Satellite tiles
+                return L.gridLayer.googleMutant({
+                    type: 'satellite'
+                });
+            } else {
+                // SwissTopo tiles
+                return L.tileLayer(`https://wmts.geo.admin.ch/1.0.0/${layerName}/default/current/3857/{z}/{x}/{y}.jpeg`, {
+                    attribution: '&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>',
+                    maxZoom: 18,
+                    minZoom: 5
+                });
+            }
+        }
+
+        // Initialize the default basemap
+        let currentTileLayer = createTileLayer('ch.swisstopo.pixelkarte-grau');
+        currentTileLayer.addTo(map);
+
+        // Handle basemap changes
+        const basemapSelector = document.getElementById('basemap');
+        basemapSelector.addEventListener('change', (event) => {
+            const selectedLayer = event.target.value;
+
+            // Remove the current tile layer
+            map.removeLayer(currentTileLayer);
+
+            // Add the new tile layer
+            currentTileLayer = createTileLayer(selectedLayer);
+            currentTileLayer.addTo(map);
         });
 
-        tileLayer.on('tileerror', function(error) {
-            console.error('Tile loading error:', error);
+        // Toggle menu visibility
+        const menuIcon = document.getElementById('menu-icon');
+        const menu = document.getElementById('menu');
+        menuIcon.addEventListener('click', () => {
+            menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
         });
-
-        tileLayer.addTo(map);
     </script>
 </body>
 </html>
