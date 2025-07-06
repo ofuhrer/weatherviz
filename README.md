@@ -18,10 +18,13 @@ frontend.
    python backend/stac_converter.py \
        ch.meteoschweiz.ogd-forecasting-icon-ch2 T \
        --ref-time latest --horizon P0DT0H \
+       --regrid geolatlon,5,45,12,50,0.02,0.02 \
        output.png
    ```
    Adjust the collection ID, variable, reference time and horizon as needed.
-   The script retrieves the data via `meteodata-lab`, rescales it to 8‑bit and
-   writes `output.png`.
+   The optional `--regrid` argument remaps the unstructured ICON grid onto a
+   regular latitude/longitude grid (here 0.02° spacing over Switzerland). The
+   script retrieves the data via `meteodata-lab`, rescales it to 8‑bit and writes
+   `output.png`.
 
 Open `index.html` in a web browser to see the map.
