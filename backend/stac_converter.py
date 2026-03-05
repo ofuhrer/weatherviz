@@ -2,16 +2,15 @@
 
 import logging
 from pathlib import Path
-from typing import Any
 
 import numpy as np
+import xarray
 from PIL import Image
 from meteodatalab import ogd_api
 from meteodatalab.operators import regrid
 from meteodatalab.operators.regrid import RegularGrid
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 
 def fetch_variable(
@@ -20,7 +19,7 @@ def fetch_variable(
     ref_time: str,
     horizon: str,
     perturbed: bool,
-) -> "xarray.DataArray":
+) -> xarray.DataArray:
     """Retrieve a forecast field as an ``xarray.DataArray``."""
 
     request = ogd_api.Request(
@@ -36,6 +35,13 @@ def fetch_variable(
 def array_to_png(data: np.ndarray, output_path: Path) -> None:
     """Save a 2D NumPy array as an 8-bit grayscale PNG with transparency for NaN values."""
     logger.info("Saving PNG to %s", output_path)
+
+    # Handle the case where all values are NaN
+    if np.isnan(data).all():
+        logger.warning("Array contains only NaN values. Generating a blank transparent image.")
+        rgba_image = np.zeros((*data.shape, 4), dtype=np.uint8)
+        Image.fromarray(rgba_image).save(output_path)
+        return
 
     # Create an alpha channel where NaN values are transparent
     alpha_channel = np.where(np.isnan(data), 0, 255).astype(np.uint8)
@@ -92,6 +98,8 @@ def variable_to_png(
 
 if __name__ == "__main__":
     import argparse
+
+    logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(
         description="Download an OGD forecast variable and save it as a PNG"
